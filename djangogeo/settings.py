@@ -12,28 +12,35 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+from socket import gethostname
+#from django.conf.global_settings import CSRF_...
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DJPROJECT_DIR = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
-ON_OPENSHIFT = True if 'OPENSHIFT_REPO_DIR' in os.environ else False
+DIRNAME_FILE = os.path.dirname(__file__)
+BASE_DIR = os.path.dirname(DIRNAME_FILE)
+DJ_PROJECT_BASENAME_DIR = os.path.basename(DIRNAME_FILE)
+
+#DJ_PROJECT_BASENAME_DIR = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
+ON_OPENSHIFT = 'OPENSHIFT_REPO_DIR' in os.environ 
+
+SECRET_KEY_FILE = os.path.join(BASE_DIR, 'secrets.txt')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '^3=&8nv^8q3^-t&@e27j8z5x$!mfm9%e4znor%wi_jl8sw=%%d'
-##
-"""
-if DEBUG:
-    SECRET_KEY = 'hello!'
-else:
-    SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
-"""
+#SECRET_KEY = '^3=&8nv^8q3^-t&@e27j8z5x$!mfm9%e4znor%wi_jl8sw=%%d'
+with open(SECRET_KEY_FILE) as f:
+    SECRET_KEY = f.read().strip()
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-ALLOWED_HOSTS = ["*"] if ON_OPENSHIFT else []
+DEBUG = True    #DEBUG = not ON_OPENSHIFT
+ALLOWED_HOSTS = [
+    gethostname(), # For internal OpenShift load balancer security purposes.
+    os.environ.get('OPENSHIFT_APP_DNS'), # Dynamically map to the OpenShift gear name.
+    #'example.com', # First DNS alias (set up in the app)
+    #'www.example.com', # Second DNS alias (set up in the app)
+] if ON_OPENSHIFT else []
 
 
 # Application definition
@@ -59,7 +66,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.security.SecurityMiddleware',
 )
 
-ROOT_URLCONF = ".".join([DJPROJECT_DIR, 'urls'])
+ROOT_URLCONF = ".".join([DJ_PROJECT_BASENAME_DIR, 'urls'])
 
 
 TEMPLATES = [
@@ -80,7 +87,7 @@ TEMPLATES = [
 ]
 
 
-WSGI_APPLICATION = ".".join([DJPROJECT_DIR, 'wsgi', 'application'])
+WSGI_APPLICATION = ".".join([DJ_PROJECT_BASENAME_DIR, 'wsgi', 'application'])
 
 
 # Database
@@ -110,7 +117,7 @@ MEDIA_URL = '/media/'
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'wsgi', 'static')
 MEDIA_ROOT = os.path.join(BASE_DIR, 'wsgi', 'media')
-STATICFILES_DIRS = [os.path.join(BASE_DIR, DJPROJECT_DIR, 'static')]
+STATICFILES_DIRS = [os.path.join(BASE_DIR, DJ_PROJECT_BASENAME_DIR, 'static')]
 
 '''
 STATICFILES_FINDERS = (
@@ -118,4 +125,16 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
     'django.contrib.staticfiles.finders.DefaultStorageFinder',
 )
+
+
+## SECURITY OPTIONS
+
+print CSRF_COOKIE_SECURE, CSRF_COOKIE_HTTPONLY, SESSION_COOKIE_SECURE
+print SESSION_COOKIE_SECURE, SECURE_CONTENT_TYPE_NOSNIFF
+
+#CSRF_COOKIE_SECURE = True
+#CSRF_COOKIE_HTTPONLY = True
+#SESSION_COOKIE_SECURE = True
+#SECURE_BROWSER_XSS_FILTER = True
+#SECURE_CONTENT_TYPE_NOSNIFF = True
 '''
